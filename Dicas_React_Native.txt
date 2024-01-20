@@ -1,0 +1,23 @@
+# =================================================== #
+# Assunto: React Native .... by: MarcusVOR (Jan/2024) #
+# =================================================== #
+. Install Android Studio -> https://developer.android.com/ -> Hedgehog | 2023.1.1 Patch 1 (1GB!?) ;
+
+. https://www.youtube.com/watch?v=VDgihqrZUQg ;
+
+. C:\MPXDS\cursos\react_native ;
+
+. npx create-expo-app mp-calmoria ;
+
+. cd mp-calmoria ;
+
+. open vscode = code . ;
+
+. npx expo start ;
+
+. Aplicativo ExpoGo no celular ANDROID ;
+
+. exp://192.168.0.102:8081
+. http://localhost:8081
+
+. CTRL+M -> Forçar um REFRESH ! ;
