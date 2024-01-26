@@ -21,3 +21,11 @@
 . http://localhost:8081
 
 . CTRL+M -> Forçar um REFRESH ! ;
+
+. App.json (Alterar image splash(abertura)) ;
+
+. App.js -> install axios? x fetch (Consume API Rest!) + react-navigation ;
+
+npm install react-native-paper (free) ;
+
+https://blog.logrocket.com/designing-custom-ui-using-react-native-paper/
