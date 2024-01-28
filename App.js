@@ -1,11 +1,7 @@
 import * as React from 'react';
-
 import { StyleSheet, Text, TextInput, View, Image, TouchableOpacity, Modal } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
-//import { ModalAnsIA } from './modal/index';
-
-import { Button, Menu, Divider, PaperProvider } from 'react-native-paper';
-
+import { Button, Menu, Divider, PaperProvider, ActivityIndicator, MD2Colors } from 'react-native-paper';
 import axios from 'axios';
 
 export default function App() {
@@ -15,7 +11,10 @@ export default function App() {
   const [ userData, setUserData ] = React.useState('');
 
   const [ indModalAnsIA, setIndModalAnsIA ] = React.useState(false);
-  const openModalAnsIA = () => setIndModalAnsIA(true);
+  const openModalAnsIA = () => {
+    setMsg('');
+    setIndModalAnsIA(true);
+  }
   const closeModalAnsIA = () => setIndModalAnsIA(false);
 
   const [indModalMenu, setIndModalMenu] = React.useState(false);
@@ -30,8 +29,20 @@ export default function App() {
   const [ respostaAnsIA, setRespostaAnsIA ] = React.useState('');
 
   const [ indModalPerguntaAnsIA, setIndModalPerguntaAnsIA ] = React.useState(false);
-  const openModalPerguntaAnsIA = () => setIndModalPerguntaAnsIA(true);
+  const openModalPerguntaAnsIA = () => {
+    setMsg('');
+    setPerguntaAnsIA('');
+    setRespostaAnsIA('');
+    setIndModalPerguntaAnsIA(true);
+  }
   const closeModalPerguntaAnsIA = () => setIndModalPerguntaAnsIA(false);
+
+  const serverUrl = 'http://192.168.0.102:8085/apps'; // localhost(Dá Network Error)
+  const endpointAnsIA = `${serverUrl}/api/bot/chatGptUrlAnsIA?context=S&prompt=`;
+
+  const [indLoadIndicator, setIndLoadIndicator] = React.useState(true);
+  const openLoadIndicator = () => setIndLoadIndicator(true);
+  const closeLoadIndicator = () => setIndLoadIndicator(false);
 
   // ===============================================================
 
@@ -39,49 +50,76 @@ export default function App() {
     //
     setMsg('Mensagem : ');
 
+    openLoadIndicator;
     if (email == '') {
       setMsg('Mensagem : Informar E-mail!');
       return;
     }
 
-    const endpoint = `http://192.168.0.102:8085/apps/api/v1/usuarios/auth/${email}` ;
-    //const endpoint = `http://localhost:8085/apps/api/v1/usuarios/auth/${email}` ;
+    const endpointAuth = `${serverUrl}/api/v1/usuarios/auth/${email}`;
+    
+    axios.get(endpointAuth)
+      .then(response => {
+        const { apelido, nome, sobreNome, qtdEnquete, qtdPerguntaAnsIA } = response.data;
+        // console.log(apelido, nome, sobreNome);  
+        const userDataApi = {
+          apelido: apelido,
+          nome: nome,
+          sobreNome: sobreNome,
+          qtdEnquete: qtdEnquete,
+          qtdPerguntaAnsIA: qtdPerguntaAnsIA,
+        };
+        setUserData(userDataApi);
+        setMsg(`Mensagem : Olá, \n( ${nome} ${sobreNome} ) ! `);
 
-    axios.get(endpoint)
-    .then(response => {
-      // console.log(response.data);
-      const { apelido, nome, sobreNome } = response.data;
-      // console.log(apelido, nome, sobreNome);  
-      const userDataApi = {
-        apelido: apelido,
-        nome: nome,
-        sobreNome: sobreNome,
-      };
-      setUserData(userDataApi);
-      setMsg(`Mensagem : Olá, \n( ${nome} ${sobreNome} ) ! `);
-
-      setIndModalAnsIA(true);
-    })
-    .catch(error => {
-      setMsg(`Mensagem : Error ao carregar os \ndados do Usuário ! \n( ${email} ) \n${error} `);
-    });    
+        setIndModalAnsIA(true);
+      })
+      .catch(error => {
+        setMsg(`Mensagem : ${email} ) \n${error} `);
+      });    
+      setIndLoadIndicator(false);
   };
 
   function handlerVoltar() {
     //
     setIndModalNivelStress(false);
+    setIndModalPerguntaAnsIA(false);
   };
 
   function handlerSair() {
     //
     setIndModalAnsIA(false);
     setIndModalNivelStress(false);
+    setIndModalPerguntaAnsIA(false);
   };
 
   function handlerMedirStress() {
     //
     setIndModalNivelStress(false);
   };
+
+  function handlerPerguntaAnsIA() {
+    //
+    // console.log(`${endpointAnsIA}${perguntaAnsIA}`);
+    if (perguntaAnsIA == '') {
+      setMsg('Mensagem : Informar Pergunta!');
+      return;
+    };
+    
+    setIndLoadIndicator(true);
+    axios.get(`${endpointAnsIA}${perguntaAnsIA}`)
+      .then(response => {
+        console.log(response.data);  
+        const respostaApiAnsIA = `. Pergunta: ${perguntaAnsIA}\n. Resposta: ${response.data}`;
+        setRespostaAnsIA(respostaApiAnsIA);
+        setPerguntaAnsIA('');
+        setMsg('');
+      })
+      .catch(error => {
+        setMsg(`Mensagem : ${error} `);
+      });    
+      setIndLoadIndicator(false);
+    }
   
   return (
       <View style={styles.container}>
@@ -89,6 +127,9 @@ export default function App() {
         <Image style={styles.logo}
           source={require('./assets/ansiedadeZeroCalmoria-AnsIA_logo.png')} 
         />
+
+        <ActivityIndicator animating={indLoadIndicator} color={MD2Colors.red800} />
+        
         <Text style={styles.email}>E-mail : </Text>
         <TouchableOpacity style={styles.textInput}>
           <TextInput onChangeText={setEmail} value={email}
@@ -168,15 +209,17 @@ export default function App() {
               <TouchableOpacity style={styles.textInputPergunta}>
                 <TextInput onChangeText={setPerguntaAnsIA} value={perguntaAnsIA}
                   placeholder="Digite sua pergunta?"
-                  keyboardType="text"
                 />
               </TouchableOpacity>
 
-              <TouchableOpacity style={styles.buttonMedio} onPress={handlerMedirStress}>
+              <TouchableOpacity style={styles.buttonMedio} onPress={handlerPerguntaAnsIA}>
                 <Text style={styles.buttonText}>Perguntar</Text>
               </TouchableOpacity>
-
-              <Text style={styles.textInputPergunta} value={respostaAnsIA} />
+              
+              <ActivityIndicator animating={indLoadIndicator} color={MD2Colors.red800} />
+              
+              <Text style={styles.textOutputResposta}>{respostaAnsIA}</Text>
+              <Text style={styles.mensagem}>{msg}</Text>
 
               <TouchableOpacity style={styles.buttonMenor} onPress={handlerVoltar}>
                 <Text style={styles.buttonTextMenor}>Voltar</Text>
@@ -187,7 +230,6 @@ export default function App() {
             </View>
           </PaperProvider>          
         </Modal>
-
 
       </View>
   );
@@ -250,6 +292,13 @@ const styles = StyleSheet.create({
     fontSize: 32,
     fontWeight: 'bold',
   },
+  textOutputResposta: {
+    marginTop: 5,
+    backgroundColor: '#fff',
+    width: '90%',
+    fontSize: 12,
+    fontWeight: 'bold',
+  },
   button:{
     marginTop: 15,
     padding: 6,
@@ -270,10 +319,10 @@ const styles = StyleSheet.create({
   },
   buttonMedio:{
     marginTop: 15,
-    padding: 6,
+    padding: 5,
     backgroundColor: '#392de9',
     borderRadius: 8,
-    width: '60%',
+    width: '50%',
     alignItems: 'center', 
     justifyContent: 'center',
   },
@@ -282,7 +331,7 @@ const styles = StyleSheet.create({
     marginBottom: 10,
     padding: 3,
     color: '#fff',
-    fontSize: 18,
+    fontSize: 14,
     fontWeight: 'bold',
   },
   buttonTextMenor:{
